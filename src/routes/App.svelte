@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	let time = $state(new Date())
 	let percent = $derived(
 		(
@@ -30,20 +30,22 @@
 
 	let decHands = $state(true)
 	const toggle = () => { decHands = !decHands }
-	
+
 	$effect(() => {
-		let id
+		let id: number | undefined
 		function step() {
 			time = new Date()
 			id = requestAnimationFrame(step);
 		}
 		step()
-		return () => cancelAnimationFrame(id)
+		return () => {
+			if(id != null) cancelAnimationFrame(id)
+		}
 	});
 
 	const eleven = Array.from({ length: 11 }).map((_, i) => i)
 	const ten = eleven.slice(0, 10)
-	const romans = [0].concat(eleven.map((i) => String.fromCodePoint(0x2160 + i)))
+	const romans = ['0'].concat(eleven.map((i) => String.fromCodePoint(0x2160 + i)))
 </script>
 
 <svg viewBox="-50 -50 100 100">
@@ -59,7 +61,7 @@
       <path d="M0,0 l10,5 l-10,5 z" />
     </marker>
 	</defs>
-	
+
 	<circle id="face" r="48" onclick={toggle} onkeydown={() => {}} tabindex={1} role="button"/>
 
 	{#each eleven as minute}
@@ -67,9 +69,9 @@
 			<line y1="40" y2="45"/>
 				<text y="40" transform="rotate(180)">
 				<tspan class="roman">{romans[minute]}</tspan><!--
-				-->{#if !decHands}<!--
-					--><tspan class="operation" dx="-1" dy="-1">/</tspan><!--
-					--><tspan class="hexadecimal" dx="-0.5" dy="1">5</tspan>
+  	 -->{#if !decHands}<!--
+			 --><tspan class="operation" dx="-1" dy="-1">⨯</tspan><!--
+			 --><tspan class="hexadecimal" dx="-0.5" dy="1">𝔸</tspan>
 				{/if}
 			</text>
 		</g>
@@ -78,7 +80,7 @@
 			{#each ten as second}
 				{@const num = minute * 36 + (second + 1) * 3.6}
 				<g class="minor" transform="rotate({num})">
-					<line y1="42" y2="45"/>
+					<line y1="45" y2="50"/>
 					<!-- <text y="40" transform="rotate(180)">{second}</text> -->
 				</g>
 			{/each}
@@ -102,9 +104,9 @@
 		{@const dec = idx === 0}
 		<text id={idx === 0 ? 'digital' : 'fraction'} class="readout" x="0%" y={`${23 + idx * 5}%`}>
 			{Math.floor(clock.hours).toString().padStart(dec ? 1 : 2, '0')}{''
-			}{dec ? '�' : '�K'}{''
+			}{dec ? 'ʜ' : 'ʜ͋'}{''
 		  }{Math.floor(clock.minutes).toString().padStart(2, '0')}{''
-			}{dec ? '' : 'K'}{''
+			}{dec ? 'ᴍ' : 'ᴍ͋'}{''
 			}{Math.floor(clock.seconds).toString().padStart(2, '0')}
 		</text>
 	{/each}
@@ -117,14 +119,14 @@
 	:root {
 		transition: all 1s ease-in-out;
 	}
-	
+
 	svg {
 		max-width: 100vw;
 		max-height: 100vh;
 		display: block;
 		margin-inline: auto;
 	}
-	
+
 	#face {
 		stroke: #EEE4;
 		stroke-width: 3;
@@ -167,11 +169,9 @@
 		}
   	&.decimal text {
 			font-size: 8pt;
-
-			& .
 		}
 	}
-	
+
 	line:hover {
 		stroke-opacity: 1;
 	}
@@ -179,7 +179,7 @@
 	text:hover {
 		fill-opacity: 1;
 	}
-	
+
 	.hour {
 		stroke: #030;
 		fill: #030;
@@ -189,15 +189,15 @@
 		fill: orange;
 		stroke: orangered;
 	}
-	
+
 	.minute {
 		stroke: #006;
 		fill: #006;
 	}
 
 	.minute.decimal {
-		stroke: #B0B
-		fill: #B0B
+		stroke: #B0B;
+		fill: #B0B;
 	}
 
 	.second {
@@ -213,7 +213,7 @@
 		fill: #B00;
 		stroke: #007;
 	}
-	
+
 	.arm {
 		stroke-opacity: 0.75;
 		fill-opacity: 0.5;

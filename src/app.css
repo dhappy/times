@@ -1,4 +1,4 @@
-body {
+:root {
 	--bg-1: hsl(0, 0%, 100%);
 	--bg-2: hsl(206, 20%, 90%);
 	--bg-3: hsl(206, 20%, 80%);
@@ -12,15 +12,21 @@ body {
 	--font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
 		'Open Sans', 'Helvetica Neue', sans-serif;
 	--font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas,
-		'DejaVu Sans Mono', monospace;
-	color-scheme: light;
+	'DejaVu Sans Mono', monospace;
+	color-scheme: light dark;
 	background: var(--bg-1);
 	color: var(--fg-1);
 	font-family: var(--font);
 	line-height: 1.5;
-	margin: 1rem;
-	height: calc(100vh - 2rem);
 	accent-color: var(--hover) !important;
+}
+
+body {
+	margin: 0;
+}
+
+html, body {
+	height: 100dvh;
 }
 
 a {
