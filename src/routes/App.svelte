@@ -15,7 +15,7 @@
 	)
 
 	class DecimalClock {
-		hours = $derived(percent % 1)
+		hours = $derived(percent / 10)
 		minutes = $derived((percent * 10) % 100)
 		seconds = $derived((percent * 1000) % 100)
 	}
@@ -106,7 +106,16 @@
 
 	{#each [decimal, fraction] as clock, idx}
 		{@const dec = idx === 0}
-		<text id={idx === 0 ? 'digital' : 'fraction'} class="readout" x="0%" y={`${23 + idx * 5}%`}>
+		{@const type = idx === 0 ? 'digital' : 'fraction'}
+		<text
+			id={type}
+			class:active={
+				(decHands && type === 'digital')
+				|| (!decHands && type === 'fraction')
+			}
+			class="readout"
+			x="0%" y={`${23 + idx * 5}%`}
+		>
 			{Math.floor(clock.hours).toString().padStart(dec ? 1 : 2, '0')}{''
 			}{dec ? 'ʜ' : 'ʜ͋'}{''
 		  }{Math.floor(clock.minutes).toString().padStart(2, '0')}{''
@@ -180,8 +189,13 @@
 		stroke-opacity: 1;
 	}
 
-	text:hover {
-		fill-opacity: 1;
+	text {
+		&.active {
+			fill: brown;
+		}
+		&:hover {
+			fill-opacity: 1;
+		}
 	}
 
 	.hour {
