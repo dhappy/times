@@ -48,6 +48,10 @@
 	const romans = ['0'].concat(eleven.map((i) => String.fromCodePoint(0x2160 + i)))
 </script>
 
+<svelte:head>
+	<title>Decimal Clock</title>
+</svelte:head>
+
 <svg viewBox="-50 -50 100 100">
 	<defs>
 		<marker
