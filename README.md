@@ -1,38 +1,7 @@
-# sv
+# Base-10 Analog & Digital Clocks
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+This project is an exploration of clocks based on base ten rather than base 60 as the Babylonian clock most commonly used is.
 
-## Creating a project
+There are two possible displays. Both have 100 minutes per hour & 100 seconds per minute. One has ten hours in a day as the clock used during the French Revolution did. The other has 100 hours per day & the time of day is simply the percentage of the day that has passed.
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+To switch betwen clocks, just click on the face. For some reason this works in Firefox, but not in Chrome. It is also possible to switch using the '`u`' key. Also, you can add a pause between each tick *(up to one second)* with the '`p`' key.

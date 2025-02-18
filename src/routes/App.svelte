@@ -1,17 +1,19 @@
 <script lang="ts">
-	let time = $state(new Date())
+	import { tick } from 'svelte'
+	import Toastify from 'toastify-js'
+	import 'toastify-js/src/toastify.css'
+
+	let pause = $state(0)
+	const timeFunc = () => (
+		performance.timeOrigin + performance.now()
+		// new Date().getTime()
+	)
+	const tz = new Date().getTimezoneOffset() * 60 * 1000
+	let ons = $state<Array<boolean>>([])
+	const day = 24 * 60 * 60 * 1000
+	let time = $state(timeFunc())
 	let percent = $derived(
-		(
-			(
-				(
-					time.getHours() * 60
-					+ time.getMinutes()
-				) * 60
-				+ time.getSeconds()
-			)
-		) / (
-			24 * 60 * 60
-		) * 100
+		(((time % day) - tz) / day) * 100
 	)
 
 	class DecimalClock {
@@ -34,8 +36,23 @@
 	$effect(() => {
 		let id: number | undefined
 		function step() {
-			time = new Date()
-			id = requestAnimationFrame(step);
+			const next = async () => {
+				if(pause > 0) {
+					await new Promise((resolve) => {
+						setTimeout(resolve, pause)
+					})
+				}
+				time = timeFunc()
+				id = requestAnimationFrame(step)
+			}
+			if(!document.startViewTransition) {
+				next()
+			} else {
+				document.startViewTransition(async () => {
+					await next()
+					await tick()
+				})
+			}
 		}
 		step()
 		return () => {
@@ -43,14 +60,45 @@
 		}
 	});
 
-	const eleven = Array.from({ length: 11 }).map((_, i) => i)
-	const ten = eleven.slice(0, 10)
+	const hundred = Array.from({ length: 100 }).map((_, i) => i)
+	const eleven = hundred.slice(0, 11)
 	const romans = ['0'].concat(eleven.map((i) => String.fromCodePoint(0x2160 + i)))
+
+	const alert = (text) => {
+		Toastify({
+			text,
+			duration: 10_000,
+			close: true,
+			gravity: 'bottom', // `top` or `bottom`
+			position: 'center', // `left`, `center` or `right`
+			stopOnFocus: true, // Prevents dismissing of toast on hover
+			style: {
+				background: "linear-gradient(to right, #0004C2, #C25800)",
+				borderRadius: '1rem',
+			},
+		}).showToast();
+	}
+
+	$effect(() => {
+		alert(
+			'Press ’𐌵’ or click the face to switch speeds.'
+			+ '\n\nPress ’ｐ’ to add a pause.'
+		)
+	})
 </script>
 
 <svelte:head>
-	<title>Decimal Clock</title>
+	<title>{decHands ? 'Decimal' : 'Percentage'} Clock</title>
 </svelte:head>
+
+<svelte:document onkeypress={(evt) => {
+	if(evt.key === 'u') {
+		decHands = !decHands
+	} else if(evt.key === 'p') {
+		pause = (pause + 200) % 1200
+		alert(`Pausing ${pause.toLocaleString()}ms.`)
+	}
+}}/>
 
 <svg viewBox="-50 -50 100 100">
 	<defs>
@@ -66,12 +114,19 @@
     </marker>
 	</defs>
 
-	<circle id="face" r="48" onclick={toggle} onkeydown={() => {}} tabindex={1} role="button"/>
+	<circle
+		id="face"
+		r="48"
+		onclick={toggle}
+		onkeydown={() => {}}
+		tabindex={-1}
+		role="button"
+	/>
 
 	{#each eleven as minute}
 		<g class="major" class:decimal={decHands} transform="rotate({36 * minute})">
 			<line y1="40" y2="45"/>
-				<text y="40" transform="rotate(180)">
+			<text y="40" transform="rotate(180)">
 				<tspan class="roman">{romans[minute]}</tspan><!--
   	 -->{#if !decHands}<!--
 			 --><tspan class="operation" dx="-1" dy="-1">⨯</tspan><!--
@@ -79,26 +134,60 @@
 				{/if}
 			</text>
 		</g>
-
-		{#if minute < 10}
-			{#each ten as second}
-				{@const num = minute * 36 + (second + 1) * 3.6}
-				<g class="minor" transform="rotate({num})">
-					<line y1="45" y2="50"/>
-					<!-- <text y="40" transform="rotate(180)">{second}</text> -->
-				</g>
-			{/each}
-		{/if}
 	{/each}
 
-	<!-- hour hand -->
-	<line class="hour arm" class:decimal={decHands} y1="2" y2="-20" transform="rotate({360 * (percent / 100)})" />
+	{#each hundred as second}
+		{@const num = second * 3.6 + 180}
+		{@const current = (
+			Math.floor(decHands ? decimal.seconds : fraction.seconds)
+			=== second
+		)
+}
+		<g
+			class="minor"
+			transform="rotate({num})"
+			class:on={ons[second]}
+			class:current
+		>
+			<line
+				y1="45" y2="50"
+				role="button"
+				tabindex={second + 1}
+				onclick={() => { ons[second] = !ons[second]	}}
+				onkeypress={(evt) => {
+					if(evt.key === 'Enter') {
+						ons[second] = !ons[second]
+					}
+				}}
+			/>
+			<text y={current ? 48 : 44.5}>{second}</text>
+		</g>
+	{/each}
 
-	<!-- minute hand -->
-	<line class="minute arm" class:decimal={decHands} y1="4" y2="-30" transform="rotate({360 * (decHands ? (decimal.minutes / 100) : (fraction.minutes / 100))})" />
+	<line
+		class="hour arm"
+		class:decimal={decHands}
+		y1="2" y2="-20"
+		transform="rotate({360 * (percent / 100)})"
+	/>
 
-	<!-- second hand -->
-	<g class="second" class:decimal={decHands} transform="rotate({360 * (decHands ? (decimal.seconds / 100) : (fraction.seconds / 100))})">
+	<line
+		class="minute arm"
+		class:decimal={decHands}
+		y1="4" y2="-30"
+		transform="rotate({
+			360 * (decHands ? (decimal.minutes / 100) : (fraction.minutes / 100))
+		})"
+	/>
+
+	<g
+		class="second"
+		class:decimal={decHands}
+		transform="rotate({
+			360 * (decHands ? (decimal.seconds / 100) : (fraction.seconds / 100))
+		})"
+		style:view-transition-name="seconds"
+	>
 		<line class="arm" y1="10" y2={decHands ? -36 : -42}/>
 		<line id="counterweight" y1="10" y2="2"/>
 		<circle r="2"/>
@@ -149,13 +238,37 @@
 	.minor {
 		stroke: #999;
 		stroke-opacity: 0.5;
-		stroke-width: 0.5;
+		stroke-width: 1.5;
 
 		& text {
+			display: none;
 			text-anchor: middle;
-			font-size: 1pt;
-			fill: #770;
+			font-size: 3pt;
+			fill: #F70;
 			fill-opacity: 0.75;
+			stroke-width: 0.1;
+			transform: rotate(180);
+			transform-origin: center;
+		}
+		&.on + &.on text {
+			font-size: 1.5pt;
+		}
+		& line:hover, & line:focus {
+			stroke: #0FC;
+		}
+		&.on line {
+			stroke: #09D;
+		}
+		&.on text, & line:hover ~ text, & line:focus ~ text {
+			display: inherit;
+		}
+		&.current {
+			stroke: #B77D;
+
+			& text {
+				display: inherit;
+				fill: #360C;
+			}
 		}
 	}
 
