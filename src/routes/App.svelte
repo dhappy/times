@@ -28,7 +28,7 @@
 	}
 	let fraction = new FractionClock()
 
-	let decHands = $state(true)
+	let decHands = $state(false)
 	const toggle = () => { decHands = !decHands }
 
 	$effect(() => {
