@@ -38,7 +38,6 @@
       {largeArcFlag}
       {sweepFlag}
       {x.end},{y.end}
-    )
   "
 />
 
