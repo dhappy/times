@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { tick } from 'svelte'
 	import Toastify from 'toastify-js'
+	import { page } from '$app/state'
+	import zodiac from '$lib/zodiac'
+	import Arc from '$lib/Arc.svelte'
 	import 'toastify-js/src/toastify.css'
+
+	const debug = page.url.searchParams.has('debug')
 
 	let pause = $state(0)
 	const timeFunc = () => (
@@ -29,6 +34,13 @@
 		seconds = $derived((percent * 10000) % 100)
 	}
 	let fraction = new FractionClock()
+
+	const now = new Date()
+	const yStart = new Date(now.getFullYear(), 0, 1)
+	const yEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+	const yLength = yEnd.getTime() - yStart.getTime()
+	const yPercent = (now.getTime() - yStart.getTime()) / yLength
+	if(debug) console.debug({ yStart, yEnd, yLength, yPercent })
 
 	let decHands = $state(false)
 	const toggle = () => { decHands = !decHands }
@@ -64,7 +76,7 @@
 	const eleven = hundred.slice(0, 11)
 	const romans = ['0'].concat(eleven.map((i) => String.fromCodePoint(0x2160 + i)))
 
-	const alert = (text) => {
+	const alert = (text: string) => {
 		Toastify({
 			text,
 			duration: 10_000,
@@ -85,6 +97,20 @@
 			+ '\n\nPress ’ｐ’ to add a pause.'
 		)
 	})
+
+	const zPercents = zodiac.map((
+		{ start, end, symbol, name }:
+		{ start: Date, end: Date, symbol: string, name: string }
+	) => ({
+		start: ((start.getTime() - yStart.getTime()) / yLength) - 12,
+		end: ((end.getTime() - yStart.getTime()) / yLength) - 12,
+		symbol,
+		name,
+	}))
+	if(debug) console.debug({ zodiac, zPercents })
+
+	const capPercent = zPercents.find(({ name }) => name === 'Capricorn')
+	const capOffset = capPercent!.start & yLength
 </script>
 
 <svelte:head>
@@ -100,7 +126,7 @@
 	}
 }}/>
 
-<svg viewBox="-50 -50 100 100">
+<svg viewBox="-60 -60 120 120">
 	<defs>
 		<marker
       id="arrow"
@@ -136,13 +162,27 @@
 		</g>
 	{/each}
 
+	{#each zPercents as sign}
+		<g class="month">
+			<Arc
+				cx={0} cy={0} r={48}
+				Ⲑs={2 * Math.PI * sign.start}
+				Ⲑe={2 * Math.PI * sign.end}
+			/>
+			<text y="55" transform="rotate({
+				2 * Math.PI * (sign.start - capOffset) * (180 / Math.PI)
+			})">
+				<tspan class="norse">{sign.symbol}</tspan>
+			</text>
+		</g>
+	{/each}
+
 	{#each hundred as second}
 		{@const num = second * 3.6 + 180}
 		{@const current = (
 			Math.floor(decHands ? decimal.seconds : fraction.seconds)
 			=== second
-		)
-}
+		)}
 		<g
 			class="minor"
 			transform="rotate({num})"
@@ -155,14 +195,19 @@
 				tabindex={second + 1}
 				onclick={() => { ons[second] = !ons[second]	}}
 				onkeypress={(evt) => {
-					if(evt.key === 'Enter') {
-						ons[second] = !ons[second]
-					}
+					if(evt.key === 'Enter') return ons[second] = !ons[second]
 				}}
 			/>
 			<text y={current ? 48 : 44.5}>{second}</text>
 		</g>
 	{/each}
+
+	<line
+		class="year arm"
+		class:decimal={decHands}
+		y1="2" y2="-30"
+		transform="rotate({360 * yPercent})"
+	/>
 
 	<line
 		class="hour arm"
@@ -311,6 +356,15 @@
 		}
 	}
 
+	.year {
+		stroke: cyan;
+		fill: #FF07;
+	}
+
+	.month {
+		font-size: 2.5pt;
+	}
+
 	.hour {
 		stroke: #030;
 		fill: #030;
@@ -365,4 +419,18 @@
 		font-family: monospace;
 		text-anchor: middle;
 	}
+
+	:global(:nth-child(1 of .month) .arc) { stroke: red	}
+	:global(:nth-child(2 of .month) .arc) { stroke: orange	}
+	:global(:nth-child(3 of .month) .arc) { stroke: yellow	}
+	:global(:nth-child(4 of .month) .arc) { stroke: green	}
+	:global(:nth-child(5 of .month) .arc) { stroke: blue	}
+	:global(:nth-child(6 of .month) .arc) { stroke: violet	}
+	:global(:nth-child(7 of .month) .arc) { stroke: blue	}
+	:global(:nth-child(8 of .month) .arc) { stroke: green	}
+	:global(:nth-child(9 of .month) .arc) { stroke: yellow	}
+	:global(:nth-child(10 of .month) .arc) { stroke: orange	}
+	:global(:nth-child(11 of .month) .arc) { stroke: red	}
+	:global(:nth-child(12 of .month) .arc) { stroke: cyan	}
+	:global(:nth-child(13 of .month) .arc) { stroke: magenta	}
 </style>

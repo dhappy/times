@@ -1,0 +1,80 @@
+export default [
+  {
+    name: 'Capricorn',
+    symbol: '♑',
+    start: new Date('2037/01/20 17:15'),
+    end: new Date('2037/02/16 17:47'),
+  } as const,
+  {
+    name: 'Aquarius',
+    symbol: '♒',
+    start: new Date('2037/02/16 17:47'),
+    end: new Date('2037/03/11 17:47'),
+  } as const,
+  {
+    name: 'Pisces',
+    symbol: '♓',
+    start: new Date('2037/03/11 17:47'),
+    end: new Date('2037/04/18 17:45'),
+  } as const,
+  {
+    name: 'Aries',
+    symbol: '♈',
+    start: new Date('2037/04/18 17:45'),
+    end: new Date('2037/05/13 17:45'),
+  } as const,
+  {
+    name: 'Taurus',
+    symbol: '♉',
+    start: new Date('2037/05/13 17:45'),
+    end: new Date('2037/06/21 17:45'),
+  } as const,
+  {
+    name: 'Gemini',
+    symbol: '♊',
+    start: new Date('2037/06/21 17:45'),
+    end: new Date('2037/07/20 17:45'),
+  } as const,
+  {
+    name: 'Cancer',
+    symbol: '♋',
+    start: new Date('2037/07/20 17:45'),
+    end: new Date('2037/08/10 17:45'),
+  } as const,
+  {
+    name: 'Leo',
+    symbol: '♌',
+    start: new Date('2037/08/10 17:45'),
+    end: new Date('2037/09/16 17:45'),
+  } as const,
+  {
+    name: 'Virgo',
+    symbol: '♍',
+    start: new Date('2037/09/16 17:45'),
+    end: new Date('2037/10/30 17:45'),
+  } as const,
+  {
+    name: 'Libra',
+    symbol: '♎',
+    start: new Date('2037/10/30 17:45'),
+    end: new Date('2037/11/23 17:45'),
+  } as const,
+  {
+    name: 'Scorpio',
+    symbol: '♏',
+    start: new Date('2037/11/23 17:45'),
+    end: new Date('2037/11/29 17:45'),
+  } as const,
+  {
+    name: 'Ophiuchus',
+    symbol: '⛎',
+    start: new Date('2037/11/29 17:45'),
+    end: new Date('2037/12/27 17:45'),
+  } as const,
+  {
+    name: 'Sagittarius',
+    symbol: '♐',
+    start: new Date('2037/12/27 17:45'),
+    end: new Date('2022/01/20 17:45'),
+  } as const,
+] as const
