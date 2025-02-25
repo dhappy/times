@@ -107,10 +107,15 @@
 		symbol,
 		name,
 	}))
+	if(zPercents.length > 0) {
+		zPercents.at(-1)!.end = zPercents.at(0)!.start
+	}
 	if(debug) console.debug({ zodiac, zPercents })
 
 	const capPercent = zPercents.find(({ name }) => name === 'Capricorn')
 	const capOffset = capPercent!.start & yLength
+
+	if(debug) console.debug({ capPercent, capOffset })
 </script>
 
 <svelte:head>
@@ -163,14 +168,15 @@
 	{/each}
 
 	{#each zPercents as sign}
+		{@const shift = 0.437}
 		<g class="month">
 			<Arc
-				cx={0} cy={0} r={48}
-				Ⲑs={2 * Math.PI * sign.start}
-				Ⲑe={2 * Math.PI * sign.end}
+				cx={0} cy={0} r={51}
+				Ⲑs={2 * Math.PI * (sign.start + shift)}
+				Ⲑe={2 * Math.PI * (sign.end + shift)}
 			/>
 			<text y="55" transform="rotate({
-				2 * Math.PI * (sign.start - capOffset) * (180 / Math.PI)
+				2 * Math.PI * (sign.start + shift) * (180 / Math.PI)
 			})">
 				<tspan class="norse">{sign.symbol}</tspan>
 			</text>
@@ -348,6 +354,8 @@
 	}
 
 	text {
+		text-anchor: middle;
+
 		&.active {
 			fill: brown;
 		}

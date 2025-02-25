@@ -14,15 +14,15 @@
   if(debug) console.debug({ cx, cy, r, Ⲑs, Ⲑe })
 
   const x = {
-    start: r * Math.cos(Ⲑs),
-    end: r * Math.cos(Ⲑe),
+    start: r * Math.cos(Ⲑs + Math.PI / 2),
+    end: r * Math.cos(Ⲑe + Math.PI / 2),
   }
   const y = {
-    start: r * Math.sin(Ⲑs),
-    end: r * Math.sin(Ⲑe),
+    start: r * Math.sin(Ⲑs + Math.PI / 2),
+    end: r * Math.sin(Ⲑe + Math.PI / 2),
   }
 
-  const rotation = 90
+  const rotation =  0
   const largeArcFlag = 0
   const sweepFlag = 1
 
