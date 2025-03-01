@@ -22,11 +22,16 @@
 	let percent = $derived(
 		(((time % day) - tzMs) / day) * 100
 	)
-	let units: (
-		'decimal' | 'centurion'
-		| 'roman times' | 'roman tens'
-	) = (
-		$state('centurion')
+	const unitTypes = {
+		fraction: ['arabic', 'roman', 'roman/times', 'none'],
+		decimal: ['arabic', 'roman', 'none'],
+	} as const
+	type UnitType = (
+		{ decimal: 'arabic' | 'roman' }
+	  & { fraction: 'arabic' | 'roman' }
+	)
+	let units: UnitType = (
+		$state({ fraction: 'arabic' })
 	)
 
 	class DecimalClock {
@@ -141,8 +146,9 @@
 		alert(
 			'’𐌵’ or face click to switch speeds.'
 			+ '\n\n’ｐ’ adds a pause.'
-			+ '\n\n’d,c,t, & n’ change the face units.',
-			{ gravity: 'top' },
+			+ '\n\n’k’ change the face marks.'
+			+ '\n\n’m’ to display moon phases.',
+			{ gravity: 'bottom' },
 		)
 	})
 
@@ -168,6 +174,8 @@
 	// svelte-ignore state_referenced_locally
 	const tzNum = -now.getTimezoneOffset() / 60
 	const tz = tzNum >= 0 ? `+${tzNum}` : tzNum
+
+	const clockType = $derived(decHands ? 'decimal' : 'fraction')
 
 	const hijri = {
 		epoch: new Date(2024, 6, 16, 17, 30),
@@ -195,14 +203,14 @@
 	} else if(evt.key === 'p') {
 		pause = (pause + 200) % 1200
 		alert(`Pausing ${pause.toLocaleString()}ms.`)
-	} else if(evt.key === 'd') {
-		units = 'decimal'
-	} else if(evt.key === 'c') {
-		units = 'centurion'
-	} else if(evt.key === 't') {
-		units = 'roman times'
-	} else if(evt.key === 'n') {
-		units = 'roman tens'
+	} else if(evt.key === 'k') {
+		const display = unitTypes[clockType]
+		const idx = display.indexOf(
+			units[clockType as keyof typeof units]
+		)
+		const next = display[(idx + 1) % display.length]
+		if(debug) console.debug({ clockType, next, units })
+		units = { [clockType]: next } as UnitType
 	} else if(evt.key === 'm') {
 		show.moons = !show.moons
 	} else if(evt.key === 'f') {
@@ -281,17 +289,23 @@
 				{/if}
 				{#if show.tenMarks}
 					<text y="40" transform="rotate(180)">
-						{#if units === 'roman times'}<!--
-						--><tspan class="roman">{romansToTen[minute]}</tspan><!--
-						--><tspan class="operation" dx="-1" dy="-1">⨯</tspan><!--
-						--><tspan class="hexadecimal" dx="-0.5" dy="1">𝔸</tspan><!--
-						--><tspan class="tz" dx="-0.5" dy="-0.5">{tz}</tspan>
-						{:else if units === 'roman tens'}
-							<tspan class="roman">{romansByTen[minute]}</tspan>
-						{:else if units === 'centurion'}
-							<tspan class="number">{minute * 10}%</tspan>
-						{:else if units === 'decimal'}
-							<tspan class="number">{minute}</tspan>
+						{#if clockType === 'fraction'}
+							{#if units[clockType] === 'roman'}
+								<tspan class="roman">{romansByTen[minute]}</tspan>
+							{:else if units[clockType] === 'roman/times'}<!--
+  							--><tspan class="roman">{romansToTen[minute]}</tspan><!--
+								--><tspan class="operation" dx="-1" dy="-1">⨯</tspan><!--
+								--><tspan class="hexadecimal" dx="-0.5" dy="1">𝔸</tspan><!--
+								--><tspan class="tz" dx="-0.5" dy="-0.5">{tz}</tspan>
+							{:else if units[clockType] === 'arabic'}
+								<tspan class="number">{minute * 10}%</tspan>
+							{/if}
+						{:else if clockType === 'decimal'}
+							{#if units[clockType] === 'roman'}
+								<tspan class="roman">{romansToTen[minute]}</tspan>
+							{:else if units[clockType] === 'arabic'}
+								<tspan class="number">{minute}</tspan>
+							{/if}
 						{:else}
 							<tspan class="unknown">¿?</tspan>
 						{/if}
