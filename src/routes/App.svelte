@@ -22,17 +22,28 @@
 	let percent = $derived(
 		(((time % day) - tzMs) / day) * 100
 	)
+
 	const unitTypes = {
 		fraction: ['arabic', 'roman', 'roman/times', 'none'],
 		decimal: ['arabic', 'roman', 'none'],
 	} as const
-	type UnitType = (
-		{ decimal: 'arabic' | 'roman' }
-	  & { fraction: 'arabic' | 'roman' }
-	)
+	type ArrayToUnion<T extends readonly string[]> = T[number]
+	type CreateUnitType<T extends Record<string, readonly string[]>> = {
+  	[K in keyof T]: { [P in K]: ArrayToUnion<T[P]> };
+	}[keyof T]
+	type UnitType = CreateUnitType<typeof unitTypes>;
+	type DecimalSelection = Extract<UnitType, { decimal: any }>
+	type FractionSelection = Extract<UnitType, { fraction: any }>
 	let units: UnitType = (
 		$state({ fraction: 'arabic' })
 	)
+
+	function hasDecimal(units: UnitType): units is DecimalSelection {
+    return 'decimal' in units;
+	}
+	function hasFraction(units: UnitType): units is FractionSelection {
+    return 'fraction' in units;
+	}
 
 	class DecimalClock {
 		hours = $derived(percent / 10)
@@ -102,21 +113,54 @@
 		{ icon: '🌗', name: 'Last Quarter' },
 		{ icon: '🌘', name: 'Waning Crescent' },
 	]
+	const { searchParams: search } = page.url
+	console.debug({ year: search.get('year') })
+	function has(
+		param: { [key: string]: boolean | null | undefined }
+	) {
+		const [[key, def], ...rest]  = Object.entries(param)
+		if(rest.length > 0) {
+			throw new Error(
+				'`has` only accepts an object with a single key.'
+			)
+		}
+		const found = (() => {
+			if(
+				search.has(key)
+				&& (
+					[undefined, null, 'true', 't', '1']
+					.includes(search.get(key))
+				)
+			) {
+				return true
+			}
+			if(search.has(key)) return false
+			if(def != null && typeof def === 'boolean') {
+				return def
+			}
+			throw new Error(
+				`Invalid default, "${def}", for "${key}".`
+			)
+		})()
+		console.debug({ return: { [key]: found } })
+		return { [key]: found }
+	}
 	let show = $state({
-		moons: false,
-		year: true,
-		hours: true,
-		minutes: true,
-		seconds: true,
-		tenMarks: true,
-		minTicks: true,
-		zodiac: true,
-		face: true,
-		percent: true,
-		decimal: true,
-		fraction: true,
-		babylonian: true,
+		...has({ moons: false }),
+		...has({ year: true }),
+		...has({ hours: true }),
+		...has({ minutes: true }),
+		...has({ seconds: true }),
+		...has({ tenMarks: true }),
+		...has({ minTicks: true }),
+		...has({ zodiac: true }),
+		...has({ face: true }),
+		...has({ percent: true }),
+		...has({ decimal: true }),
+		...has({ fraction: true }),
+		...has({ babylonian: true }),
 	})
+	$inspect(show)
 
 	const synodic = 29.53059 * 24 * 60 * 60 * 1000
 	const synPercent = synodic / year
@@ -206,7 +250,7 @@
 	} else if(evt.key === 'k') {
 		const display = unitTypes[clockType]
 		const idx = display.indexOf(
-			units[clockType as keyof typeof units]
+			units[clockType]
 		)
 		const next = display[(idx + 1) % display.length]
 		if(debug) console.debug({ clockType, next, units })
@@ -289,21 +333,21 @@
 				{/if}
 				{#if show.tenMarks}
 					<text y="40" transform="rotate(180)">
-						{#if clockType === 'fraction'}
-							{#if units[clockType] === 'roman'}
+						{#if hasFraction(units)}
+							{#if units.fraction === 'roman'}
 								<tspan class="roman">{romansByTen[minute]}</tspan>
-							{:else if units[clockType] === 'roman/times'}<!--
+							{:else if units.fraction === 'roman/times'}<!--
   							--><tspan class="roman">{romansToTen[minute]}</tspan><!--
 								--><tspan class="operation" dx="-1" dy="-1">⨯</tspan><!--
 								--><tspan class="hexadecimal" dx="-0.5" dy="1">𝔸</tspan><!--
 								--><tspan class="tz" dx="-0.5" dy="-0.5">{tz}</tspan>
-							{:else if units[clockType] === 'arabic'}
+							{:else if units.fraction === 'arabic'}
 								<tspan class="number">{minute * 10}%</tspan>
 							{/if}
-						{:else if clockType === 'decimal'}
-							{#if units[clockType] === 'roman'}
+						{:else if hasDecimal(units)}
+							{#if units.decimal === 'roman'}
 								<tspan class="roman">{romansToTen[minute]}</tspan>
-							{:else if units[clockType] === 'arabic'}
+							{:else if units.decimal === 'arabic'}
 								<tspan class="number">{minute}</tspan>
 							{/if}
 						{:else}
