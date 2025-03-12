@@ -75,6 +75,6 @@ export default [
     name: 'Sagittarius',
     symbol: '♐',
     start: new Date('2037/12/27 17:45'),
-    end: new Date('2022/01/20 17:45'),
+    end: new Date('2038/01/20 17:45'),
   } as const,
 ] as const

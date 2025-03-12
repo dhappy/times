@@ -8,19 +8,34 @@
 	import 'toastify-js/src/toastify.css'
 
 	const debug = page.url.searchParams.has('debug')
-
+	let decHands = $state(page.url.searchParams.get('type') === 'decimal')
+	const startTime = (() => {
+		let set = ''
+		const date = page.url.searchParams.get('date')
+		set += date || new Date().toISOString().split('T')[0]
+		const time = page.url.searchParams.get('time')
+		set += `T${time || new Date().toISOString().split('T')[1]}`
+		if(debug) console.debug({ 'Initial Time': set })
+		return new Date(set).getTime()
+	})()
 	let pause = $state(0)
-	const timeFunc = () => (
-		performance.timeOrigin + performance.now()
-		// new Date().getTime()
-	)
+	let startedAt: number | null = null
+	const timeFunc = () => {
+		// performance.timeOrigin + performance.now()
+		if(startedAt == null) {
+			startedAt = new Date().getTime()
+		}
+		const now = new Date().getTime()
+		const Δ = now - startedAt
+		return startTime + Δ
+	}
 	const tzMs = new Date().getTimezoneOffset() * 60 * 1000
 	let ons = $state<Array<boolean>>([])
 	const day = 24 * 60 * 60 * 1000
 	const year = day * 365.25
 	let time = $state(timeFunc())
 	let percent = $derived(
-		(((time % day) - tzMs) / day) * 100
+		(((((time % day) - tzMs) / day) + 1) % 1) * 100
 	)
 
 	const unitTypes = {
@@ -35,7 +50,7 @@
 	type DecimalSelection = Extract<UnitType, { decimal: any }>
 	type FractionSelection = Extract<UnitType, { fraction: any }>
 	let units: UnitType = (
-		$state({ fraction: 'arabic' })
+		$state(decHands ? { decimal: 'roman' } : { fraction: 'arabic' })
 	)
 
 	function hasDecimal(units: UnitType): units is DecimalSelection {
@@ -46,16 +61,18 @@
 	}
 
 	class DecimalClock {
+		type = 'decimal'
 		hours = $derived(percent / 10)
 		minutes = $derived((percent * 10) % 100)
-		seconds = $derived((percent * 1000) % 100)
+		seconds = $derived((percent * 1_000) % 100)
 	}
 	let decimal = new DecimalClock()
 
 	class FractionClock {
+		type = 'fraction'
 		hours = $derived(percent % 100)
 		minutes = $derived((percent * 100) % 100)
-		seconds = $derived((percent * 10000) % 100)
+		seconds = $derived((percent * 10_000) % 100)
 	}
 	let fraction = new FractionClock()
 
@@ -65,8 +82,6 @@
 	const yLength = yEnd.getTime() - yStart.getTime()
 	const yPercent = (now.getTime() - yStart.getTime()) / yLength
 	if(debug) console.debug({ yStart, yEnd, yLength, yPercent })
-
-	let decHands = $state(false)
 
 	$effect(() => {
 		let id: number | undefined
@@ -114,7 +129,6 @@
 		{ icon: '🌘', name: 'Waning Crescent' },
 	]
 	const { searchParams: search } = page.url
-	console.debug({ year: search.get('year') })
 	function has(
 		param: { [key: string]: boolean | null | undefined }
 	) {
@@ -142,7 +156,6 @@
 				`Invalid default, "${def}", for "${key}".`
 			)
 		})()
-		console.debug({ return: { [key]: found } })
 		return { [key]: found }
 	}
 	let show = $state({
@@ -186,16 +199,6 @@
 		}).showToast();
 	}
 
-	$effect(() => {
-		alert(
-			'’𐌵’ or face click to switch speeds.'
-			+ '\n\n’ｐ’ adds a pause.'
-			+ '\n\n’k’ change the face marks.'
-			+ '\n\n’m’ to display moon phases.',
-			{ gravity: 'bottom' },
-		)
-	})
-
 	const zPercents = zodiac.map((
 		{ start, end, symbol, name }:
 		{ start: Date, end: Date, symbol: string, name: string }
@@ -206,9 +209,6 @@
 		name,
 		length: Math.round((end.getTime() - start.getTime()) / day),
 	}))
-	if(zPercents.length > 0) {
-		zPercents.at(-1)!.end = zPercents.at(0)!.start
-	}
 	if(debug) console.debug({ zodiac, zPercents })
 
 	const capPercent = zPercents.find(({ name }) => name === 'Capricorn')
@@ -219,7 +219,7 @@
 	const tzNum = -now.getTimezoneOffset() / 60
 	const tz = tzNum >= 0 ? `+${tzNum}` : tzNum
 
-	const clockType = $derived(decHands ? 'decimal' : 'fraction')
+	const clock = $derived(decHands ? decimal : fraction)
 
 	const hijri = {
 		epoch: new Date(2024, 6, 16, 17, 30),
@@ -248,13 +248,13 @@
 		pause = (pause + 200) % 1200
 		alert(`Pausing ${pause.toLocaleString()}ms.`)
 	} else if(evt.key === 'k') {
-		const display = unitTypes[clockType]
+		const display = unitTypes[clock.type]
 		const idx = display.indexOf(
-			units[clockType]
+			units[clock.type]
 		)
 		const next = display[(idx + 1) % display.length]
-		if(debug) console.debug({ clockType, next, units })
-		units = { [clockType]: next } as UnitType
+		if(debug) console.debug({ type: clock.type, next, units })
+		units = { [clock.type]: next } as UnitType
 	} else if(evt.key === 'm') {
 		show.moons = !show.moons
 	} else if(evt.key === 'f') {
@@ -289,7 +289,14 @@
 	<circle
 		id="face"
 		r="48"
-		onclick={() => { decHands = !decHands }}
+		onclick={() => {
+			decHands = !decHands
+			if(decHands) {
+				units = { decimal: 'roman' }
+			}	else {
+				units = { fraction: 'arabic' }
+			}
+		}}
 		onkeydown={() => {}}
 		tabindex={-1}
 		role="button"
@@ -300,14 +307,9 @@
 	{#if show.moons}
 		{#each Array.from({ length: lunarCount }) as _, month}
 			{@const r = 58.75}
-			{@const Ⲑ = 2 * PI * month / (thirteen.length - 1)}
+			{@const Ⲑ = 2 * PI * synPercent * month}
 			{@const completion = month / thirteen.length}
 			<g class="lunar month">
-				<Arc
-					cx={0} cy={0} {r}
-					Ⲑs={2 * PI * Ⲑ}
-					Ⲑe={2 * PI * (Ⲑ + 2 * PI * synPercent)}
-				/>
 				{#each moons as phase, idx}
 					{@const span = synPercent / moons.length}
 					{@const x = (r + completion * 3.5) * cos(Ⲑ + idx * span * 2 * PI)}
@@ -365,7 +367,7 @@
 			{@const shifted = {
 				start: sign.start + shift,
 				end: sign.end + shift,
-				width: sign.start - sign.end,
+				width: sign.end - sign.start,
 			}}
 			<g class="zodiac month">
 				<Arc
@@ -383,46 +385,53 @@
 					<title>{sign.name}</title>
 					{sign.symbol}
 				</text>
-				{#each Array.from({ length: sign.length }) as _, day}
-					<text
-						y="53"
-						transform="rotate({
-							2 * Math.PI
-							* (shifted.start + day * shifted.width / sign.length)
-							* (180 / Math.PI)
-						})"
-						class="day number"
-					>{day}</text>
-				{/each}
+				<g class="zodiac days">
+					{#each Array.from({ length: sign.length }) as _, day}
+						<g>
+							<title>{sign.name} {day}</title>
+							<text
+								y="53"
+								transform="rotate({
+									2 * Math.PI
+									* (shifted.start + day * shifted.width / sign.length)
+									* (180 / Math.PI)
+								})"
+								class="day number"
+							>{day}</text>
+						</g>
+					{/each}
+				</g>
 			</g>
 		{/each}
 	{/if}
 
 	{#if show.seconds}
-		{#each hundred as second}
-			{@const num = second * 3.6 + 180}
-			{@const current = (
-				Math.floor(decHands ? decimal.seconds : fraction.seconds)
-				=== second
-			)}
-			<g
-				class="minor"
-				transform="rotate({num})"
-				class:on={ons[second]}
-				class:current
-			>
-				<line
-					y1="45" y2="50"
-					role="button"
-					tabindex={second + 1}
-					onclick={() => { ons[second] = !ons[second]	}}
-					onkeypress={(evt) => {
-						if(evt.key === 'Enter') return ons[second] = !ons[second]
-					}}
-				/>
-				<text y={current ? 48 : 44.5}>{second}</text>
-			</g>
-		{/each}
+		<g class="seconds">
+			{#each hundred as second}
+				{@const num = second * 3.6 + 180}
+				{@const current = (
+					Math.floor(decHands ? decimal.seconds : fraction.seconds)
+					=== second
+				)}
+				<g
+					class="minor"
+					transform="rotate({num})"
+					class:on={ons[second]}
+					class:current
+				>
+					<line
+						y1="45" y2="50"
+						role="button"
+						tabindex={second + 1}
+						onclick={() => { ons[second] = !ons[second]	}}
+						onkeypress={(evt) => {
+							if(evt.key === 'Enter') return ons[second] = !ons[second]
+						}}
+					/>
+					<text y={current ? 48 : 44.5}>{second}</text>
+				</g>
+			{/each}
+		</g>
 	{/if}
 
 	{#if show.year}
@@ -431,7 +440,9 @@
 			class:decimal={decHands}
 			y1="2" y2="-30"
 			transform="rotate({360 * yPercent})"
-		/>
+		>
+			<title>Day</title>
+		</line>
 	{/if}
 
 	{#if show.hours}
@@ -440,7 +451,9 @@
 			class:decimal={decHands}
 			y1="2" y2="-20"
 			transform="rotate({360 * (percent / 100)})"
-		/>
+		>
+			<title>Hours</title>
+		</line>
 	{/if}
 
 	{#if show.minutes}
@@ -448,21 +461,20 @@
 			class="minute arm"
 			class:decimal={decHands}
 			y1="4" y2="-30"
-			transform="rotate({
-				360 * (decHands ? (decimal.minutes / 100) : (fraction.minutes / 100))
-			})"
-		/>
+			transform="rotate({360 * clock.minutes / 100})"
+		>
+			<title>Minutes</title>
+		</line>
 	{/if}
 
 	{#if show.seconds}
 		<g
 			class="second"
 			class:decimal={decHands}
-			transform="rotate({
-				360 * (decHands ? (decimal.seconds / 100) : (fraction.seconds / 100))
-			})"
+			transform="rotate({360 * clock.seconds / 100})"
 			style:view-transition-name="seconds"
 		>
+			<title>Seconds</title>
 			<line class="arm" y1="10" y2={decHands ? -36 : -42}/>
 			<line id="counterweight" y1="10" y2="2"/>
 			<circle r="2"/>
@@ -488,16 +500,14 @@
 		</svelte:boundary>
 	{/if}
 
-
 	{#each [decimal, fraction] as clock, idx}
 		{@const dec = idx === 0}
-		{@const type = idx === 0 ? 'decimal' : 'fraction'}
-		{#if show[type]}
+		{#if show[clock.type]}
 			<text
-				id={type}
+				id={clock.type}
 				class:active={
-					(decHands && type === 'decimal')
-					|| (!decHands && type === 'fraction')
+					(decHands && clock.type === 'decimal')
+					|| (!decHands && clock.type === 'fraction')
 				}
 				class="readout"
 				x={dec ? '-36%' : '38%'} y="-45%"
