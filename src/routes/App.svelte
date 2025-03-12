@@ -482,22 +482,21 @@
 	{/if}
 
 	{#if show.babylonian}
-		<svelte:boundary>
-			{@const [hr, min, sec] = (
-				now.toLocaleString('en-US', {
-					hour: 'numeric',
-					minute: 'numeric',
-					second: 'numeric',
-					hour12: false,
-					hourCycle: 'h23'  // Explicitly set to 00-23
-				}).split(/:/g)
-			)}
-			<text id="babylonian" class="readout" x="-38%" y="48%" style="textAnchor: start">
-				{hr}<tspan class="colon">:</tspan><!--
-		-->{min}<tspan class="colon">:</tspan><!--
-		-->{sec}
-			</text>
-		</svelte:boundary>
+		{@const [hr, min, sec] = (
+			now.toLocaleString('en-US', {
+				hour: 'numeric',
+				minute: 'numeric',
+				second: 'numeric',
+				hour12: false,
+				hourCycle: 'h23'  // Explicitly set to 00-23
+			}).split(/:/g)
+		)}
+		<text id="babylonian" class="readout" x="-38%" y="48%" style="textAnchor: start">
+			<title>Babylonian Time</title>
+			{hr}<tspan class="colon">:</tspan><!--
+	-->{min}<tspan class="colon">:</tspan><!--
+	-->{sec}
+		</text>
 	{/if}
 
 	{#each [decimal, fraction] as clock, idx}
@@ -512,6 +511,7 @@
 				class="readout"
 				x={dec ? '-36%' : '38%'} y="-45%"
 			>
+				<title>{clock.type.replace(/^\w/, c => c.toUpperCase())} Time</title>
 				{Math.floor(clock.hours).toString().padStart(dec ? 1 : 2, '0')}{''
 				}{dec ? 'ʜ' : 'ʜ͋'}{''
 				}{Math.floor(clock.minutes).toString().padStart(2, '0')}{''
@@ -522,6 +522,7 @@
 	{/each}
 	{#if show.percent}
 		<text id="percent" class="readout" x="38%" y="48%">
+			<title>Percentage of Day</title>
 			{percent.toFixed(3)}%
 		</text>
 	{/if}
